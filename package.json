@@ -1,0 +1,33 @@
+{
+	"name": "weweb-upload",
+	"version": "1.0.2",
+	"description": "Upload sections and wwObjects to WeWeb",
+	"main": "index.js",
+	"scripts": {
+		"test": "test"
+	},
+	"bin": {
+		"weweb-upload": "bin/index.js"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/WeWeb-Public/weweb-upload.git"
+	},
+	"keywords": [
+		"WeWeb",
+		"Upload",
+		"Section",
+		"wwSection",
+		"wwObject"
+	],
+	"author": "WeWeb",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/WeWeb-Public/weweb-upload/issues"
+	},
+	"homepage": "https://github.com/WeWeb-Public/weweb-upload#readme",
+	"dependencies": {
+		"axios": "^0.18.0",
+		"inquirer": "^6.2.0"
+	}
+}
