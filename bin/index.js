@@ -9,12 +9,6 @@ const server = 'http://localhost:3000/api/v1'
 const userPrefPath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + 'Library/Preferences' : '/var/local'), 'weweb_upload')
 const userPrefFilename = 'user_pref.json'
 
-if (!fs.existsSync(userPrefPath)) {
-    fs.mkdirSync(userPrefPath);
-}
-
-return;
-
 
 /*=============================================m_ÔÔ_m=============================================\
   ASK USER FOR CREDENTIALS
@@ -58,7 +52,12 @@ const writeUserPref = function (userPref) {
         userPref = userPref || {};
         userPref = JSON.stringify(userPref);
 
-        fs.writeFileSync(userPrefPath, userPref, function (err) {
+
+        if (!fs.existsSync(userPrefPath)) {
+            fs.mkdirSync(userPrefPath);
+        }
+
+        fs.writeFileSync(path.join(userPrefPath, userPrefFilename), userPref, function (err) {
             if (err) {
                 throw new Error();
             }
@@ -80,7 +79,7 @@ const readUserPref = function () {
     try {
         let userPref = null
 
-        userPref = fs.readFileSync(userPrefPath, 'utf8')
+        userPref = fs.readFileSync(path.join(userPrefPath, userPrefFilename), 'utf8')
         userPref = JSON.parse(userPref)
 
         return userPref;
