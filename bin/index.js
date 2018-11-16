@@ -6,7 +6,14 @@ const fs = require('fs');
 const path = require('path');
 
 const server = 'http://localhost:3000/api/v1'
-const userPrefPath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + 'Library/Preferences' : '/var/local'), 'weweb_upload/user_pref.json')
+const userPrefPath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + 'Library/Preferences' : '/var/local'), 'weweb_upload')
+const userPrefFilename = 'user_pref.json'
+
+if (!fs.existsSync(userPrefPath)) {
+    fs.mkdirSync(userPrefPath);
+}
+
+return;
 
 
 /*=============================================m_ÔÔ_m=============================================\
