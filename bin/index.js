@@ -3,9 +3,11 @@
 const inquirer = require('inquirer')
 const axios = require('axios')
 const fs = require('fs');
+const path = require('path');
 
 const server = 'http://localhost:3000/api/v1'
-const userPrefPath = './user_pref.json'
+const userPrefPath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + 'Library/Preferences' : '/var/local'), 'weweb_upload/user_pref.json')
+
 
 /*=============================================m_ÔÔ_m=============================================\
   ASK USER FOR CREDENTIALS
@@ -219,6 +221,8 @@ const uploadToS3 = async function (url, data) {
 
 
 const run = async function () {
+
+
 
     let userPref
     let packageJson
