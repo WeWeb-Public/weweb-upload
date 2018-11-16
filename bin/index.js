@@ -9,6 +9,8 @@ const server = 'http://localhost:3000/api/v1'
 const userPrefPath = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + 'Library/Preferences' : '/var/local'), 'weweb_upload')
 const userPrefFilename = 'user_pref.json'
 
+let objectVersionId
+
 
 /*=============================================m_ÔÔ_m=============================================\
   ASK USER FOR CREDENTIALS
@@ -197,6 +199,7 @@ const requestS3Upload = async function (url, filename, userPref) {
 
     try {
         let response = await axios(options);
+        objectVersionId = response.data.objectVersionId
         return response.data.uploadUrl
     }
     catch (error) {
@@ -227,8 +230,6 @@ const uploadToS3 = async function (url, data) {
 
 
 const run = async function () {
-
-
 
     let userPref
     let packageJson
