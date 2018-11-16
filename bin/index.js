@@ -193,7 +193,8 @@ const requestS3Upload = async function (url, filename, userPref) {
         headers: { 'wwauthmanagertoken': 'auth ' + userPref.token },
         url: url,
         data: {
-            filename: filename
+            filename: filename,
+            objectVersionId: objectVersionId
         }
     }
 
