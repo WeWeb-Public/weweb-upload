@@ -103,18 +103,18 @@ const getPackageJson = function () {
         packageJSON = JSON.parse(packageJSON)
 
         if (!packageJSON.name) {
-            console.log('Error : "name" not found in package.json.')
+            console.log('\x1b[41mError : "name" not found in package.json.\x1b[0m')
             return
         }
 
         if (!packageJSON.type) {
-            console.log('Error : "type" not found in package.json.')
+            console.log('\x1b[41mError : "type" not found in package.json.\x1b[0m')
             return
         }
 
         return packageJSON;
     } catch (error) {
-        console.log('Error : ./package.json not found or incorrect format.')
+        console.log('\x1b[41mError : ./package.json not found or incorrect format.\x1b[0m')
         return null
     }
 }
@@ -185,6 +185,23 @@ const getUploadRequestUrl = function (packageJson) {
 }
 
 /*=============================================m_ÔÔ_m=============================================\
+  GET UPLOAD REQUEST URL
+\================================================================================================*/
+const getCreateVersionUrl = function (packageJson) {
+    switch (packageJson.type) {
+        case 'wwObject':
+            return server + '/wwobjects/' + packageJson.name + '/create_version'
+            break;
+        case 'section':
+            return server + '/sectionbases/' + packageJson.name + '/create_version'
+            break;
+        default:
+            return null
+            break;
+    }
+}
+
+/*=============================================m_ÔÔ_m=============================================\
   REQUEST S3 UPLOAD
 \================================================================================================*/
 const requestS3Upload = async function (url, filename, userPref) {
@@ -232,15 +249,87 @@ const uploadToS3 = async function (url, data) {
 
 const run = async function () {
 
+
+
     let userPref
     let packageJson
+    let defaultData
 
     /*=============================================m_ÔÔ_m=============================================\
       GET OBJECT NAME FROM PACKAGE.JSON
     \================================================================================================*/
     packageJson = getPackageJson();
 
+    console.log('WEWEB UPLOAD V' + packageJson.version)
+
     console.log('-- Upload ' + packageJson.type + ' ' + packageJson.name + ' --')
+
+
+    /*=============================================m_ÔÔ_m=============================================\
+      IF SECTION PARSE DEFAULT DATA
+    \================================================================================================*/
+    if (packageJson.type.toLowerCase() == 'section') {
+        const basePath = './src/default_data';
+
+        //Get default data index
+        try {
+            defaultData = fs.readFileSync(basePath + '/index.js', 'utf8');
+        } catch (error) {
+            console.log('\x1b[41mError : ' + basePath + '/index.js not found\x1b[0m');
+            return
+        }
+
+        //Eval default data index
+        try {
+            defaultData = eval(defaultData);
+            if (!defaultData || !defaultData.length) {
+                throw new Error();
+            }
+        } catch (error) {
+            console.log('\x1b[41mError : ' + basePath + '/index.js incorrect format, or no data defined\x1b[0m');
+            return
+        }
+
+        //Parse section types
+        let hasSectionType = false;
+        for (let sectionType of defaultData) {
+            if (!sectionType.name) {
+                console.log('\x1b[33mWarning : name not set for ', sectionType + '\x1b[0m');
+                continue;
+            }
+
+            let data;
+
+            //Get data
+            try {
+                data = fs.readFileSync(basePath + '/' + sectionType.name + '/data.json');
+                data = JSON.parse(data);
+            } catch (error) {
+                console.log('\x1b[33mWarning : ' + basePath + '/' + sectionType.name + '/data.json' + ' not found or incorrect format\x1b[0m');
+                continue;
+            }
+
+            sectionType.data = data;
+            hasSectionType = true;
+
+            //Get previews
+            sectionType.previews = [];
+            for (let i = 0; i < 10; i++) {
+                if (fs.existsSync(basePath + '/' + sectionType.name + '/preview_' + i + '.jpg')) {
+                    sectionType.previews.push(basePath + '/' + sectionType.name + '/preview_' + i + '.jpg');
+                }
+                if (fs.existsSync(basePath + '/' + sectionType.name + '/preview_' + i + '.png')) {
+                    sectionType.previews.push(basePath + '/' + sectionType.name + '/preview_' + i + '.png');
+                }
+            }
+        }
+
+        if (!hasSectionType) {
+            console.log('\x1b[41mError : ' + basePath + '/index.js is missing or has no correct config\x1b[0m');
+            return
+        }
+
+    }
 
 
     /*=============================================m_ÔÔ_m=============================================\
@@ -259,7 +348,7 @@ const run = async function () {
         const credentials = await askCredentials()
         userPref.token = await getToken(credentials)
         if (!userPref.token) {
-            console.log('Wrong email / password')
+            console.log('\x1b[41mError : Wrong email / password\x1b[0m')
             return
         }
     }
@@ -270,20 +359,75 @@ const run = async function () {
     \================================================================================================*/
     writeUserPref(userPref);
 
+
+    /*=============================================m_ÔÔ_m=============================================\
+      CREATE VERSION  
+    \================================================================================================*/
+    let options = {
+        method: 'POST',
+        headers: { 'wwauthmanagertoken': 'auth ' + userPref.token },
+        url: getCreateVersionUrl(),
+        data: defaultData || {}
+    }
+
+    try {
+        let response = await axios(options);
+        defaultData = response.data;
+        objectVersionId = defaultData.objectVersionId;
+    }
+    catch (error) {
+        console.log('\x1b[41mError : \x1b[0m', error)
+        return
+    }
+
+
+    /*=============================================m_ÔÔ_m=============================================\
+      UPLOAD PREVIEW
+    \================================================================================================*/
+    for (const sectionType of defaultData.data) {
+        for (const preview of sectionType.previews) {
+
+            let previewFile = getFile(preview.src);
+            if (!previewFile) {
+                console.log('\x1b[41mError : Preview upload error\x1b[0m')
+                return
+            }
+
+            if (!await uploadToS3(preview.signedUrl, previewFile)) {
+                console.log('\x1b[41mError : Upload error.\x1b[0m')
+                return
+            }
+        }
+    }
+
+
     /*=============================================m_ÔÔ_m=============================================\
       GET FILES
     \================================================================================================*/
     //Get front.js
     let frontJS = getFile('./dist/front.js');
     if (!frontJS) {
-        console.log('Error : ./dist/front.js not found. Please make sure you ran \'yarn build\' before')
+        console.log('\x1b[41mError : ./dist/front.js not found. Please make sure you ran \'yarn build\' before\x1b[0m')
         return
     }
 
     //Get manager.js
     let managerJS = getFile('./dist/manager.js');
     if (!managerJS) {
-        console.log('Error : ./dist/manager.js not found. Please make sure you ran \'yarn build\' before')
+        console.log('\x1b[41mError : ./dist/manager.js not found. Please make sure you ran \'yarn build\' before\x1b[0m')
+        return
+    }
+    //Get front-ie.js
+    let frontIEJS = getFile('./dist/front-ie.js');
+    if (!frontIEJS) {
+        console.log('\x1b[41mError : ./dist/front-ie.js not found. Please make sure you ran \'yarn build\' before\x1b[0m')
+        return
+    }
+
+    //Get manager-ie.js
+    let managerIEJS = getFile('./dist/manager-ie.js');
+    if (!managerIEJS) {
+        console.log('\x1b[41mError : ./dist/manager-ie.js not found. Please make sure you ran \'yarn build\' before\x1b[0m')
         return
     }
 
@@ -293,7 +437,7 @@ const run = async function () {
     \================================================================================================*/
     let url = getUploadRequestUrl(packageJson)
     if (!url) {
-        console.log('Error : unknown object type.')
+        console.log('\x1b[41mError : unknown object type.\x1b[0m')
         return
     }
 
@@ -304,13 +448,13 @@ const run = async function () {
     //Request S3 upload
     let uploadUrl = await requestS3Upload(url, 'front.js', userPref)
     if (!uploadUrl) {
-        console.log('Error : An error occured')
+        console.log('\x1b[41mError : An error occured\x1b[0m')
         return
     }
 
     //Upload to S3
     if (!await uploadToS3(uploadUrl, frontJS)) {
-        console.log('Error : Upload error.')
+        console.log('\x1b[41mError : Upload error.\x1b[0m')
         return
     }
 
@@ -323,13 +467,13 @@ const run = async function () {
     //Request S3 upload
     uploadUrl = await requestS3Upload(url, 'manager.js', userPref)
     if (!uploadUrl) {
-        console.log('Error : An error occured')
+        console.log('\x1b[41mError : An error occured\x1b[0m')
         return
     }
 
     //Upload to S3
     if (!await uploadToS3(uploadUrl, managerJS)) {
-        console.log('Error : Upload error.')
+        console.log('\x1b[41mError : Upload error.\x1b[0m')
         return
     }
 
@@ -337,9 +481,47 @@ const run = async function () {
 
 
     /*=============================================m_ÔÔ_m=============================================\
+      UPLOAD FRONT-IE.JS
+    \================================================================================================*/
+    //Request S3 upload
+    uploadUrl = await requestS3Upload(url, 'front-ie.js', userPref)
+    if (!uploadUrl) {
+        console.log('\x1b[41mError : An error occured\x1b[0m')
+        return
+    }
+
+    //Upload to S3
+    if (!await uploadToS3(uploadUrl, frontIEJS)) {
+        console.log('\x1b[41mError : Upload error.\x1b[0m')
+        return
+    }
+
+    console.log('-- front-ie.js upload ok --')
+
+
+    /*=============================================m_ÔÔ_m=============================================\
+      UPLOAD MANAGER-IE.JS
+    \================================================================================================*/
+    //Request S3 upload
+    uploadUrl = await requestS3Upload(url, 'manager-ie.js', userPref)
+    if (!uploadUrl) {
+        console.log('\x1b[41mError : An error occured\x1b[0m')
+        return
+    }
+
+    //Upload to S3
+    if (!await uploadToS3(uploadUrl, managerIEJS)) {
+        console.log('\x1b[41mError : Upload error.\x1b[0m')
+        return
+    }
+
+    console.log('-- manager-ie.js upload ok --')
+
+
+    /*=============================================m_ÔÔ_m=============================================\
       🎉 DONE 🎉
     \================================================================================================*/
-    console.log('-- UPLOAD DONE --')
+    console.log('\x1b[42m-- UPLOAD DONE --\x1b[0m')
 
 }
 
