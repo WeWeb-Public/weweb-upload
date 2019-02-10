@@ -394,7 +394,7 @@ const run = async function () {
             }
 
             if (!await uploadToS3(preview.signedUrl, previewFile)) {
-                console.log('\x1b[41mError : Upload error.\x1b[0m')
+                console.log('\x1b[41mError : Preview upload error\x1b[0m')
                 return
             }
         }
