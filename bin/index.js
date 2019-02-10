@@ -126,7 +126,7 @@ const isTokenValid = async function (token) {
     try {
         let response = await axios({
             method: 'get',
-            url: server + '/me',
+            url: server + '/users/me',
             headers: { 'wwauthmanagertoken': 'auth ' + token },
         })
 
@@ -146,7 +146,7 @@ const isTokenValid = async function (token) {
 const getToken = async function (credentials) {
     let response
     try {
-        response = await axios.post(server + '/auth/login', credentials)
+        response = await axios.post(server + '/users/login', credentials)
     }
     catch (error) {
         return null
@@ -253,7 +253,7 @@ const run = async function () {
 
     let userPref
     let packageJson
-    let defaultData
+    let sectionTypes
 
     /*=============================================m_ÔÔ_m=============================================\
       GET OBJECT NAME FROM PACKAGE.JSON
@@ -273,7 +273,7 @@ const run = async function () {
 
         //Get default data index
         try {
-            defaultData = fs.readFileSync(basePath + '/index.js', 'utf8');
+            sectionTypes = fs.readFileSync(basePath + '/index.js', 'utf8');
         } catch (error) {
             console.log('\x1b[41mError : ' + basePath + '/index.js not found\x1b[0m');
             return
@@ -281,8 +281,8 @@ const run = async function () {
 
         //Eval default data index
         try {
-            defaultData = eval(defaultData);
-            if (!defaultData || !defaultData.length) {
+            sectionTypes = eval(sectionTypes);
+            if (!sectionTypes || !sectionTypes.length) {
                 throw new Error();
             }
         } catch (error) {
@@ -292,7 +292,7 @@ const run = async function () {
 
         //Parse section types
         let hasSectionType = false;
-        for (let sectionType of defaultData) {
+        for (let sectionType of sectionTypes) {
             if (!sectionType.name) {
                 console.log('\x1b[33mWarning : name not set for ', sectionType + '\x1b[0m');
                 continue;
@@ -316,10 +316,16 @@ const run = async function () {
             sectionType.previews = [];
             for (let i = 0; i < 10; i++) {
                 if (fs.existsSync(basePath + '/' + sectionType.name + '/preview_' + i + '.jpg')) {
-                    sectionType.previews.push(basePath + '/' + sectionType.name + '/preview_' + i + '.jpg');
+                    sectionType.previews.push({
+                        src: basePath + '/' + sectionType.name + '/preview_' + i + '.jpg',
+                        name: 'preview_' + i + '.jpg'
+                    });
                 }
                 if (fs.existsSync(basePath + '/' + sectionType.name + '/preview_' + i + '.png')) {
-                    sectionType.previews.push(basePath + '/' + sectionType.name + '/preview_' + i + '.png');
+                    sectionType.previews.push({
+                        src: basePath + '/' + sectionType.name + '/preview_' + i + '.png',
+                        name: 'preview_' + i + '.png'
+                    });
                 }
             }
         }
@@ -366,14 +372,16 @@ const run = async function () {
     let options = {
         method: 'POST',
         headers: { 'wwauthmanagertoken': 'auth ' + userPref.token },
-        url: getCreateVersionUrl(),
-        data: defaultData || {}
+        url: getCreateVersionUrl(packageJson),
+        data: { data: sectionTypes } || {}
     }
+
+    let resultData
 
     try {
         let response = await axios(options);
-        defaultData = response.data;
-        objectVersionId = defaultData.objectVersionId;
+        resultData = response.data;
+        objectVersionId = resultData.objectVersionId;
     }
     catch (error) {
         console.log('\x1b[41mError : \x1b[0m', error)
@@ -384,10 +392,10 @@ const run = async function () {
     /*=============================================m_ÔÔ_m=============================================\
       UPLOAD PREVIEW
     \================================================================================================*/
-    for (const sectionType of defaultData.data) {
+    for (const sectionType of resultData.data) {
         for (const preview of sectionType.previews) {
 
-            let previewFile = getFile(preview.src);
+            let previewFile = fs.readFileSync(preview.src);
             if (!previewFile) {
                 console.log('\x1b[41mError : Preview upload error\x1b[0m')
                 return
