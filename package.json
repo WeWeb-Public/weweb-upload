@@ -1,6 +1,6 @@
 {
     "name": "weweb-upload",
-    "version": "1.0.12",
+    "version": "1.0.13",
     "description": "Upload sections and wwObjects to WeWeb",
     "main": "index.js",
     "scripts": {
