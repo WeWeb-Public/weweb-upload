@@ -309,7 +309,7 @@ const run = async function () {
                 continue;
             }
 
-            sectionType.data = data;
+            sectionType.defaultData = data;
             hasSectionType = true;
 
             //Get previews
@@ -366,6 +366,40 @@ const run = async function () {
     writeUserPref(userPref);
 
 
+
+
+    /*=============================================m_ÔÔ_m=============================================\
+      GET FILES
+    \================================================================================================*/
+    //Get front.js
+    let frontJS = getFile('./dist/front.js');
+    if (!frontJS) {
+        console.log('\x1b[41mError : ./dist/front.js not found. Please make sure you ran \'yarn build\' before\x1b[0m')
+        return
+    }
+
+    //Get manager.js
+    let managerJS = getFile('./dist/manager.js');
+    if (!managerJS) {
+        console.log('\x1b[41mError : ./dist/manager.js not found. Please make sure you ran \'yarn build\' before\x1b[0m')
+        return
+    }
+    //Get front-ie.js
+    let frontIEJS = getFile('./dist/front-ie.js');
+    if (!frontIEJS) {
+        console.log('\x1b[41mError : ./dist/front-ie.js not found. Please make sure you ran \'yarn build\' before\x1b[0m')
+        return
+    }
+
+    //Get manager-ie.js
+    let managerIEJS = getFile('./dist/manager-ie.js');
+    if (!managerIEJS) {
+        console.log('\x1b[41mError : ./dist/manager-ie.js not found. Please make sure you ran \'yarn build\' before\x1b[0m')
+        return
+    }
+
+
+
     /*=============================================m_ÔÔ_m=============================================\
       CREATE VERSION  
     \================================================================================================*/
@@ -373,7 +407,7 @@ const run = async function () {
         method: 'POST',
         headers: { 'wwauthmanagertoken': 'auth ' + userPref.token },
         url: getCreateVersionUrl(packageJson),
-        data: { data: sectionTypes } || {}
+        data: { data: sectionTypes, active: true } || {}
     }
 
     let resultData
@@ -407,38 +441,6 @@ const run = async function () {
             }
         }
     }
-
-
-    /*=============================================m_ÔÔ_m=============================================\
-      GET FILES
-    \================================================================================================*/
-    //Get front.js
-    let frontJS = getFile('./dist/front.js');
-    if (!frontJS) {
-        console.log('\x1b[41mError : ./dist/front.js not found. Please make sure you ran \'yarn build\' before\x1b[0m')
-        return
-    }
-
-    //Get manager.js
-    let managerJS = getFile('./dist/manager.js');
-    if (!managerJS) {
-        console.log('\x1b[41mError : ./dist/manager.js not found. Please make sure you ran \'yarn build\' before\x1b[0m')
-        return
-    }
-    //Get front-ie.js
-    let frontIEJS = getFile('./dist/front-ie.js');
-    if (!frontIEJS) {
-        console.log('\x1b[41mError : ./dist/front-ie.js not found. Please make sure you ran \'yarn build\' before\x1b[0m')
-        return
-    }
-
-    //Get manager-ie.js
-    let managerIEJS = getFile('./dist/manager-ie.js');
-    if (!managerIEJS) {
-        console.log('\x1b[41mError : ./dist/manager-ie.js not found. Please make sure you ran \'yarn build\' before\x1b[0m')
-        return
-    }
-
 
     /*=============================================m_ÔÔ_m=============================================\
       GET S3 REQUEST URL
