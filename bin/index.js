@@ -407,7 +407,7 @@ const run = async function () {
         method: 'POST',
         headers: { 'wwauthmanagertoken': 'auth ' + userPref.token },
         url: getCreateVersionUrl(packageJson),
-        data: { data: sectionTypes, active: true, public: packageJson.wewebPublic } || {}
+        data: { data: sectionTypes, active: true, public: packageJson.wewebPublic, repository: packageJson.repository } || {}
     }
 
     let resultData
